@@ -1,0 +1,48 @@
+{
+  "name": "yaoastro",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:web": "cd frontend/web && npm run dev",
+    "dev:admin": "cd admin-dashboard && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build:web": "cd frontend/web && npm run build",
+    "build:admin": "cd admin-dashboard && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "start:web": "cd frontend/web && npm run start",
+    "start:admin": "cd admin-dashboard && npm run start",
+    "start:backend": "cd backend && npm run start",
+    "android:start": "cd frontend/android && npm run start",
+    "android:run": "cd frontend/android && npm run android",
+    "ios:start": "cd frontend/ios && npm run start",
+    "ios:run": "cd frontend/ios && npm run ios",
+    "install:all": "npm run install:web && npm run install:admin && npm run install:backend && npm run install:shared",
+    "install:web": "cd frontend/web && npm install",
+    "install:admin": "cd admin-dashboard && npm install",
+    "install:backend": "cd backend && npm install",
+    "install:shared": "cd frontend/shared && npm install",
+    "install:android": "cd frontend/android && npm install",
+    "install:ios": "cd frontend/ios && npm install",
+    "prisma:generate": "cd backend && npx prisma generate",
+    "prisma:migrate": "cd backend && npx prisma migrate dev",
+    "prisma:studio": "cd backend && npx prisma studio",
+    "db:seed": "cd backend && ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
+  "prisma": {
+    "schema": "backend/prisma/schema.prisma",
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} backend/prisma/seed.ts"
+  },
+  "workspaces": [
+    "frontend/web",
+    "admin-dashboard",
+    "backend",
+    "frontend/shared"
+  ],
+  "dependencies": {
+    "ts-node": "^10.9.2"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3"
+  }
+}

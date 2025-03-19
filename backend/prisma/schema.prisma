@@ -1,0 +1,234 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户模型
+model User {
+  id             String    @id @default(uuid())
+  username       String    @unique
+  email          String    @unique
+  password       String
+  phone          String?
+  role           UserRole  @default(USER)
+  status         UserStatus @default(ACTIVE)
+  avatar         String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastLogin      DateTime?
+  membershipLevel String?   @default("免费")
+  address        String?
+  city           String?
+  country        String?
+  loginCount     Int       @default(0)
+  favoriteServices String[]
+  notes          String?
+  orders         Order[]
+  favorites      Favorite[]
+  reviews        Review[]
+}
+
+// 用户详细资料
+model UserProfile {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  birthDate     DateTime?
+  birthTime     String?
+  birthPlace    String?
+  gender        String?
+  zodiac        String?
+  chineseZodiac String?
+  notes         String?
+  favoriteServices String[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("user_profiles")
+}
+
+// 服务模型
+model Service {
+  id             String    @id @default(uuid())
+  name           String
+  description    String
+  longDescription String?   @db.Text
+  price          Float
+  discountPrice  Float?
+  category       String
+  tags           String[]
+  imageUrl       String?
+  featured       Boolean   @default(false)
+  status         ServiceStatus @default(DRAFT)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  duration       Int?      // 以分钟为单位
+  orders         Order[]
+  favorites      Favorite[]
+  reviews        Review[]
+}
+
+// 订单模型
+model Order {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  serviceId      String
+  service        Service   @relation(fields: [serviceId], references: [id])
+  amount         Float
+  originalAmount Float?
+  status         OrderStatus
+  paymentMethod  String?
+  paymentId      String?   // 支付网关的交易ID
+  notes          String?   // 用户备注
+  adminNotes     String?   // 管理员备注
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  refundedAt     DateTime?
+  statusHistory  Json[]    // 存储状态变更历史
+  review         Review?
+}
+
+// 订单状态历史，用于记录订单状态变更
+model StatusHistory {
+  id        String      @id @default(cuid())
+  orderId   String
+  status    OrderStatus
+  timestamp DateTime    @default(now())
+  operator  String      // 操作人（可以是用户ID或特殊标识如"系统"）
+  note      String?
+  order     Order       @relation(fields: [orderId], references: [id])
+}
+
+// 用户服务日志（记录用户使用服务的历史）
+model UserServiceLog {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  serviceId   String
+  service     Service   @relation(fields: [serviceId], references: [id])
+  resultData  Json?     // 服务结果数据，如分析结果等
+  createdAt   DateTime  @default(now())
+
+  @@map("user_service_logs")
+}
+
+model Notification {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  content       String
+  isRead        Boolean   @default(false)
+  type          NotificationType
+  createdAt     DateTime  @default(now())
+
+  @@map("notifications")
+}
+
+model Content {
+  id         String      @id @default(uuid())
+  title      String
+  slug       String      @unique
+  content    String      @db.Text
+  type       ContentType
+  status     ContentStatus @default(DRAFT)
+  author     String?
+  imageUrl   String?
+  tags       String[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  publishedAt DateTime?
+  viewCount  Int         @default(0)
+}
+
+// 枚举类型
+enum UserRole {
+  USER
+  ADMIN
+  MASTER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+}
+
+enum ServiceStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+}
+
+enum OrderStatus {
+  PENDING       // 待处理
+  PROCESSING    // 处理中
+  COMPLETED     // 已完成
+  CANCELLED     // 已取消
+  REFUNDED      // 已退款
+}
+
+enum NotificationType {
+  SYSTEM
+  ORDER
+  PAYMENT
+  PROMOTION
+}
+
+enum ContentType {
+  ARTICLE    // 文章
+  FAQ        // 常见问题
+  PROMOTION  // 促销信息
+  POLICY     // 政策说明
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// 支付方式枚举
+enum PaymentMethod {
+  ALIPAY        // 支付宝
+  WECHAT_PAY    // 微信支付
+  UNIONPAY      // 银联
+  BALANCE       // 余额支付
+  POINTS        // 积分兑换
+}
+
+model Favorite {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  serviceId  String
+  service    Service  @relation(fields: [serviceId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, serviceId])
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  serviceId  String
+  service    Service  @relation(fields: [serviceId], references: [id])
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id])
+  rating     Int      // 1-5 星级评分
+  content    String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  isPublic   Boolean  @default(true)
+} 

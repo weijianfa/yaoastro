@@ -1,0 +1,222 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  ALIPAY
+  WECHAT
+  CREDIT_CARD
+}
+
+enum OrderType {
+  SERVICE
+  MEMBERSHIP
+}
+
+enum AnalysisType {
+  BAZI
+  TAROT
+  FACE
+  PALM
+  DREAM
+  NAME
+  PSYCHOLOGY
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  FRIENDS
+  PRIVATE
+}
+
+// 用户模型
+model User {
+  id             String    @id @default(uuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  hashedPassword String?
+  image          String?
+  role           Role      @default(USER)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  profile        Profile?
+  accounts       Account[]
+  sessions       Session[]
+  orders         Order[]
+  analyses       Analysis[]
+  membership     UserMembership?
+  settings       UserSettings?
+}
+
+model Profile {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  bio       String?
+  phone     String?
+  birthDate DateTime?
+  gender    Gender?
+  location  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 用户设置模型
+model UserSettings {
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  language         String?   @default("zh-CN")
+  timezone         String?   @default("Asia/Shanghai")
+  dateFormat       String?   @default("YYYY-MM-DD")
+  timeFormat       String?   @default("HH:mm")
+  notifications    Json?     // 存储通知设置
+  privacy          Json?     // 存储隐私设置
+  appearance       Json?     // 存储外观设置
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// NextAuth 模型
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model MembershipLevel {
+  id           String          @id @default(uuid())
+  name         String          @unique
+  price        Float
+  description  String?
+  features     String[]
+  durationDays Int
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  users        UserMembership[]
+}
+
+model UserMembership {
+  id               String         @id @default(uuid())
+  userId           String         @unique
+  membershipLevelId String
+  startDate        DateTime
+  expiresAt        DateTime?
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membershipLevel  MembershipLevel @relation(fields: [membershipLevelId], references: [id])
+}
+
+model ServiceType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  price       Float
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders      Order[]
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  userId        String
+  serviceTypeId String?
+  status        OrderStatus   @default(PENDING)
+  amount        Float
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentId     String?
+  orderType     OrderType     @default(SERVICE)
+  completedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id])
+  serviceType   ServiceType?  @relation(fields: [serviceTypeId], references: [id], onDelete: SetNull)
+  analyses      Analysis[]
+}
+
+model Analysis {
+  id        String       @id @default(uuid())
+  userId    String
+  orderId   String
+  type      AnalysisType
+  content   Json
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user      User         @relation(fields: [userId], references: [id])
+  order     Order        @relation(fields: [orderId], references: [id])
+} 

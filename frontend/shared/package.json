@@ -1,0 +1,16 @@
+{
+  "name": "yaoastro-shared",
+  "version": "1.0.0",
+  "description": "爻星阁共享代码",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^18.15.0",
+    "typescript": "^5.1.3"
+  }
+} 
